@@ -19,8 +19,8 @@
 #include "smb4kprofilemanager.h"
 #include "smb4ksettings.h"
 #include "smb4kshare.h"
-#include "smb4kwalletmanager.h"
 #include "smb4kworkgroup.h"
+#include "smb4kcredentialsmanager.h"
 
 #if defined(Q_OS_LINUX)
 #include "smb4kmountsettings_linux.h"
@@ -603,7 +603,7 @@ void Smb4KMounter::mountShare(const SharePtr &share)
         //
         // Get the authentication information
         //
-        Smb4KWalletManager::self()->readLoginCredentials(share);
+        Smb4KCredentialsManager::self()->readLoginCredentials(share);
 
         //
         // Mount arguments
@@ -656,7 +656,7 @@ void Smb4KMounter::mountShare(const SharePtr &share)
 #if defined(Q_OS_LINUX)
                     if (errorMsg.contains(QStringLiteral("mount error 13"))
                         || errorMsg.contains(QStringLiteral("mount error(13)")) /* authentication error */) {
-                        if (Smb4KWalletManager::self()->showPasswordDialog(share)) {
+                        if (Smb4KCredentialsManager::self()->showPasswordDialog(share)) {
                             d->retries << share;
                         }
                     } else if (errorMsg.contains(QStringLiteral("Unable to find suitable address."))) {
@@ -666,7 +666,7 @@ void Smb4KMounter::mountShare(const SharePtr &share)
                     }
 #elif defined(Q_OS_FREEBSD) || defined(Q_OS_NETBSD)
                     if (errorMsg.contains(QStringLiteral("Authentication error")) || errorMsg.contains(QStringLiteral("Permission denied"))) {
-                        if (Smb4KWalletManager::self()->showPasswordDialog(share)) {
+                        if (Smb4KCredentialsManager::self()->showPasswordDialog(share)) {
                             d->retries << share;
                         }
                     } else {

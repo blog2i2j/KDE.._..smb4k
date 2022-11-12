@@ -8,7 +8,6 @@
 // application specific includes
 #include "smb4kconfigdialog.h"
 #include "core/smb4ksettings.h"
-#include "smb4kconfigpageauthentication.h"
 #include "smb4kconfigpagecustomoptions.h"
 #include "smb4kconfigpagemounting.h"
 #include "smb4kconfigpagenetwork.h"
@@ -72,12 +71,6 @@ void Smb4KConfigDialog::setupDialog()
     mount_area->setWidgetResizable(true);
     mount_area->setFrameStyle(QFrame::NoFrame);
 
-    Smb4KConfigPageAuthentication *auth_options = new Smb4KConfigPageAuthentication(this);
-    QScrollArea *auth_area = new QScrollArea(this);
-    auth_area->setWidget(auth_options);
-    auth_area->setWidgetResizable(true);
-    auth_area->setFrameStyle(QFrame::NoFrame);
-
     Smb4KConfigPageSynchronization *rsync_options = new Smb4KConfigPageSynchronization(this);
     QScrollArea *rsync_area = new QScrollArea(this);
     rsync_area->setWidget(rsync_options);
@@ -104,7 +97,6 @@ void Smb4KConfigDialog::setupDialog()
     m_user_interface = addPage(interface_area, Smb4KSettings::self(), i18n("User Interface"), QStringLiteral("preferences-desktop"));
     m_network = addPage(network_area, Smb4KSettings::self(), i18n("Network"), QStringLiteral("preferences-system-network-server-share-windows"));
     m_mounting = addPage(mount_area, Smb4KMountSettings::self(), i18n("Mounting"), QStringLiteral("media-mount"));
-    m_authentication = addPage(auth_area, Smb4KSettings::self(), i18n("Authentication"), QStringLiteral("preferences-desktop-user-password"));
     m_synchronization = addPage(rsync_area, Smb4KSettings::self(), i18n("Synchronization"), QStringLiteral("folder-sync"));
     m_custom_settings = addPage(custom_area, Smb4KSettings::self(), i18n("Custom Settings"), QStringLiteral("settings-configure"));
     m_profiles = addPage(profiles_area, Smb4KSettings::self(), i18n("Profiles"), QStringLiteral("preferences-system-users"));
@@ -113,7 +105,6 @@ void Smb4KConfigDialog::setupDialog()
     // Connections
     //
     connect(custom_options, SIGNAL(customSettingsModified()), this, SLOT(slotEnableApplyButton()));
-    connect(auth_options, SIGNAL(walletEntriesModified()), this, SLOT(slotEnableApplyButton()));
     connect(this, SIGNAL(currentPageChanged(KPageWidgetItem *, KPageWidgetItem *)), this, SLOT(slotCheckPage(KPageWidgetItem *, KPageWidgetItem *)));
 
     //
@@ -170,12 +161,6 @@ void Smb4KConfigDialog::updateSettings()
         customOptionsPage->saveCustomOptions();
     }
 
-    Smb4KConfigPageAuthentication *authenticationPage = m_authentication->widget()->findChild<Smb4KConfigPageAuthentication *>();
-
-    if (authenticationPage) {
-        authenticationPage->saveLoginCredentials();
-    }
-
     Smb4KConfigPageProfiles *profilesPage = m_profiles->widget()->findChild<Smb4KConfigPageProfiles *>();
 
     if (profilesPage) {
@@ -227,15 +212,6 @@ void Smb4KConfigDialog::slotEnableApplyButton()
     // Check if we need to enable the Apply button
     //
     bool enable = false;
-
-    //
-    // Check the wallet entries
-    //
-    Smb4KConfigPageAuthentication *authenticationPage = m_authentication->widget()->findChild<Smb4KConfigPageAuthentication *>();
-
-    if (authenticationPage) {
-        enable = authenticationPage->loginCredentialsChanged();
-    }
 
     //
     // Check the custom options

@@ -1,10 +1,5 @@
 # SPDX-License-Identifier: BSD-2-Clause
 # SPDX-FileCopyrightText: 2009-2023 Alexander Reinholdt <alexander.reinholdt@kdemail.net>
-#
-# KDSoap WS Discovery client uses 'signals' and 'slots'
-# 
-remove_definitions(
-  -DQT_NO_KEYWORDS)
 
 include_directories(
   ${CMAKE_CURRENT_SOURCE_DIR}
@@ -21,6 +16,8 @@ set(smb4kcore_LIB_SRCS
   smb4kbookmarkhandler_p.cpp
   smb4kclient.cpp
   smb4kclient_p.cpp
+  smb4kcredentialsmanager.cpp
+  smb4kcredentialsmanager_p.cpp
   smb4kcustomoptions.cpp
   smb4kcustomoptionsmanager.cpp
   smb4kcustomoptionsmanager_p.cpp
@@ -40,8 +37,6 @@ set(smb4kcore_LIB_SRCS
   smb4kshare.cpp
   smb4ksynchronizer.cpp
   smb4ksynchronizer_p.cpp
-  smb4kwalletmanager.cpp
-  smb4kwalletmanager_p.cpp
   smb4kworkgroup.cpp)
 
 if (${CMAKE_HOST_SYSTEM_NAME} MATCHES "Linux")
@@ -83,6 +78,7 @@ target_link_libraries(smb4kcore
   KF${QT_MAJOR_VERSION}::Wallet
   KF${QT_MAJOR_VERSION}::XmlGui
   KF${QT_MAJOR_VERSION}::DNSSD
+  qt${QT_MAJOR_VERSION}keychain
   ${LIBSMBCLIENT_LIBRARIES})
     
 #

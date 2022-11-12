@@ -9,12 +9,12 @@
 #include "smb4knetworkbrowserdockwidget.h"
 #include "core/smb4kbookmarkhandler.h"
 #include "core/smb4kclient.h"
+#include "core/smb4kcredentialsmanager.h"
 #include "core/smb4kcustomoptionsmanager.h"
 #include "core/smb4khost.h"
 #include "core/smb4kmounter.h"
 #include "core/smb4ksettings.h"
 #include "core/smb4kshare.h"
-#include "core/smb4kwalletmanager.h"
 #include "core/smb4kworkgroup.h"
 #include "smb4knetworkbrowseritem.h"
 #include "smb4ktooltip.h"
@@ -866,11 +866,11 @@ void Smb4KNetworkBrowserDockWidget::slotAuthentication(bool checked)
         if (item) {
             switch (item->type()) {
             case Host: {
-                Smb4KWalletManager::self()->showPasswordDialog(item->hostItem());
+            Smb4KCredentialsManager::self()->showPasswordDialog(item->hostItem());
                 break;
             }
             case Share: {
-                Smb4KWalletManager::self()->showPasswordDialog(item->shareItem());
+            Smb4KCredentialsManager::self()->showPasswordDialog(item->shareItem());
                 break;
             }
             default: {
