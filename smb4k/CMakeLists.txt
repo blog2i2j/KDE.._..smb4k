@@ -15,7 +15,6 @@ add_subdirectory(icons)
 
 set(smb4kconfigdialog_LIB_SRCS
   smb4kconfigdialog.cpp
-  smb4kconfigpageauthentication.cpp
   smb4kconfigpagecustomoptions.cpp
   smb4kconfigpagemounting.cpp
   smb4kconfigpagenetwork.cpp
