@@ -113,10 +113,6 @@ find_package(KF${QT_MAJOR_VERSION} ${KF5_MIN_VERSION} REQUIRED COMPONENTS
 # (https://github.com/frankosterfeld/qtkeychain)
 find_package(Qt${QT_MAJOR_VERSION}Keychain 0.13.2 REQUIRED)
 
-# QtKeychain: For secure storage of credentials
-# (https://github.com/frankosterfeld/qtkeychain)
-find_package(Qt${QT_MAJOR_VERSION}Keychain 0.13.2 REQUIRED)
-
 # Install the plasmoid if desired
 if (SMB4K_INSTALL_PLASMOID)
   find_package(KF${QT_MAJOR_VERSION} ${KF5_MIN_VERSION} COMPONENTS Plasma)
