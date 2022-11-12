@@ -12,6 +12,7 @@
 #include "smb4kcustomoptionsmanager.h"
 #include "smb4knotification.h"
 #include "smb4ksettings.h"
+#include "smb4kcredentialsmanager.h"
 
 // System includes
 #include <errno.h>
