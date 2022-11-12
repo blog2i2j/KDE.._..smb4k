@@ -88,11 +88,6 @@ private:
     KPageWidgetItem *m_network;
 
     /**
-     * "Authentication" page
-     */
-    KPageWidgetItem *m_authentication;
-
-    /**
      * "Mounting" page
      */
     KPageWidgetItem *m_mounting;
