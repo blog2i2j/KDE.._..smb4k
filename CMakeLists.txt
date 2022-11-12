@@ -6,7 +6,7 @@
 #
 # Minimum required CMake version
 #
-cmake_minimum_required(VERSION 3.16 FATAL_ERROR)
+cmake_minimum_required(VERSION 3.2 FATAL_ERROR)
 
 #
 # Version
@@ -108,6 +108,10 @@ find_package(KF${QT_MAJOR_VERSION} ${KF5_MIN_VERSION} REQUIRED COMPONENTS
   WindowSystem
   XmlGui
 )
+
+# QtKeychain: For secure storage of credentials
+# (https://github.com/frankosterfeld/qtkeychain)
+find_package(Qt${QT_MAJOR_VERSION}Keychain 0.13.2 REQUIRED)
 
 # QtKeychain: For secure storage of credentials
 # (https://github.com/frankosterfeld/qtkeychain)

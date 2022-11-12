@@ -866,11 +866,11 @@ void Smb4KNetworkBrowserDockWidget::slotAuthentication(bool checked)
         if (item) {
             switch (item->type()) {
             case Host: {
-            Smb4KCredentialsManager::self()->showPasswordDialog(item->hostItem());
+                Smb4KCredentialsManager::self()->showPasswordDialog(item->hostItem());
                 break;
             }
             case Share: {
-            Smb4KCredentialsManager::self()->showPasswordDialog(item->shareItem());
+                Smb4KCredentialsManager::self()->showPasswordDialog(item->shareItem());
                 break;
             }
             default: {
