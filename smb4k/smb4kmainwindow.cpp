@@ -168,6 +168,11 @@ void Smb4KMainWindow::setupStatusBar()
     m_progressBar->setAlignment(Qt::AlignCenter);
     m_progressBar->setVisible(false);
 
+    // The feedback icon.
+    m_feedbackIcon = new QLabel(statusBar());
+    m_feedbackIcon->setContentsMargins(0, 0, 0, 0);
+    m_feedbackIcon->setAlignment(Qt::AlignCenter);
+
     statusBar()->addPermanentWidget(m_progressBar);
     statusBar()->addPermanentWidget(m_feedbackIcon);
 
