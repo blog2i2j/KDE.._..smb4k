@@ -16,6 +16,7 @@
 #include <QApplication>
 #include <QDebug>
 #include <QEventLoop>
+#include <QApplication>
 #include <QPointer>
 
 using namespace Smb4KGlobal;
@@ -95,6 +96,7 @@ bool Smb4KCredentialsManager::readLoginCredentials(const NetworkItemPtr &network
 
         QUrl url = networkItem->url();
         url.setUserInfo(userInfo);
+
         networkItem->setUrl(url);
     }
 
@@ -194,6 +196,7 @@ bool Smb4KCredentialsManager::showPasswordDialog(const NetworkItemPtr &networkIt
         }
 
         delete dlg;
+
     }
 
     return success;
@@ -202,6 +205,7 @@ bool Smb4KCredentialsManager::showPasswordDialog(const NetworkItemPtr &networkIt
 bool Smb4KCredentialsManager::read(const QString &key, QString *credentials) const
 {
     bool returnValue = true;
+    d->readPasswordJob->setKey(key);
 
     QEventLoop loop;
     d->readPasswordJob->setKey(key);
@@ -231,6 +235,8 @@ bool Smb4KCredentialsManager::write(const QString &key, const QString &credentia
 
     d->writePasswordJob->setKey(key);
 
+    QEventLoop loop;
+
     QObject::connect(d->writePasswordJob, &QKeychain::WritePasswordJob::finished, [&]() {
         if (d->writePasswordJob->error()) {
             qDebug() << "Write error:" << d->writePasswordJob->errorString();
@@ -252,6 +258,8 @@ void Smb4KCredentialsManager::remove(const QString &key)
 {
     QEventLoop loop;
     d->deletePasswordJob->setKey(key);
+
+    QEventLoop loop;
 
     QObject::connect(d->deletePasswordJob, &QKeychain::WritePasswordJob::finished, [&]() {
         if (d->deletePasswordJob->error()) {
