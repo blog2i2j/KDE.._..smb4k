@@ -9,6 +9,7 @@
 #include "smb4kclient.h"
 #include "smb4kbasicnetworkitem.h"
 #include "smb4kclient_p.h"
+#include "smb4kcredentialsmanager.h"
 #include "smb4kcustomoptions.h"
 #include "smb4kcustomoptionsmanager.h"
 #include "smb4kglobal.h"
@@ -16,7 +17,6 @@
 #include "smb4khomesshareshandler.h"
 #include "smb4knotification.h"
 #include "smb4ksettings.h"
-#include "smb4kwalletmanager.h"
 
 // Qt includes
 #include <QApplication>
@@ -541,7 +541,7 @@ void Smb4KClient::openPrintDialog(const SharePtr &share)
     // If there was no print dialog present, create a new one
     //
     if (!dlg) {
-        Smb4KWalletManager::self()->readLoginCredentials(share);
+        Smb4KCredentialsManager::self()->readLoginCredentials(share);
 
         dlg = new Smb4KPrintDialog(share, QApplication::activeWindow());
         d->printDialogs << dlg;
@@ -564,14 +564,14 @@ void Smb4KClient::processErrors(Smb4KClientBaseJob *job)
     case Smb4KClientJob::AccessDeniedError: {
         switch (job->networkItem()->type()) {
         case Host: {
-            if (Smb4KWalletManager::self()->showPasswordDialog(job->networkItem())) {
+            if (Smb4KCredentialsManager::self()->showPasswordDialog(job->networkItem())) {
                 lookupShares(job->networkItem().staticCast<Smb4KHost>());
             }
 
             break;
         }
         case Share: {
-            if (Smb4KWalletManager::self()->showPasswordDialog(job->networkItem())) {
+            if (Smb4KCredentialsManager::self()->showPasswordDialog(job->networkItem())) {
                 if (job->process() == Smb4KGlobal::PrintFile) {
                     Smb4KClientJob *clientJob = qobject_cast<Smb4KClientJob *>(job);
                     printFile(job->networkItem().staticCast<Smb4KShare>(), clientJob->printFileItem(), clientJob->printCopies());
@@ -593,7 +593,7 @@ void Smb4KClient::processErrors(Smb4KClientBaseJob *job)
             share->setUserName(file->userName());
             share->setPassword(file->password());
 
-            if (Smb4KWalletManager::self()->showPasswordDialog(share)) {
+            if (Smb4KCredentialsManager::self()->showPasswordDialog(share)) {
                 file->setUserName(share->userName());
                 file->setPassword(share->password());
 
