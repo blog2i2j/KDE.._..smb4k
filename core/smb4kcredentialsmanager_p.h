@@ -13,7 +13,7 @@
 #include "smb4kglobal.h"
 
 // KDE includes
-#include <KWidgetsAddons/KPasswordDialog>
+#include <KPasswordDialog>
 
 // QtKeychain include
 #include <qt5keychain/keychain.h>
