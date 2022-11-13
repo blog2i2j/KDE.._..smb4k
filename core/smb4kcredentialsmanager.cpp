@@ -231,8 +231,6 @@ bool Smb4KCredentialsManager::write(const QString &key, const QString &credentia
     bool returnValue = true;
     QEventLoop loop;
 
-    d->writePasswordJob->setKey(key);
-
     QEventLoop loop;
 
     d->writePasswordJob->setKey(key);
@@ -257,9 +255,8 @@ bool Smb4KCredentialsManager::write(const QString &key, const QString &credentia
 void Smb4KCredentialsManager::remove(const QString &key)
 {
     QEventLoop loop;
-    d->deletePasswordJob->setKey(key);
-
     QEventLoop loop;
+    d->deletePasswordJob->setKey(key);
 
     QObject::connect(d->deletePasswordJob, &QKeychain::WritePasswordJob::finished, [&]() {
         if (d->deletePasswordJob->error()) {
