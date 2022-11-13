@@ -253,7 +253,6 @@ void Smb4KCredentialsManager::remove(const QString &key)
     QEventLoop loop;
     d->deletePasswordJob->setKey(key);
 
-
     QObject::connect(d->deletePasswordJob, &QKeychain::WritePasswordJob::finished, [&]() {
         if (d->deletePasswordJob->error()) {
             qDebug() << "Delete error:" << d->deletePasswordJob->errorString();
