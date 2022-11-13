@@ -96,7 +96,6 @@ bool Smb4KCredentialsManager::readLoginCredentials(const NetworkItemPtr &network
 
         QUrl url = networkItem->url();
         url.setUserInfo(userInfo);
-
         networkItem->setUrl(url);
     }
 
@@ -205,7 +204,6 @@ bool Smb4KCredentialsManager::showPasswordDialog(const NetworkItemPtr &networkIt
 bool Smb4KCredentialsManager::read(const QString &key, QString *credentials) const
 {
     bool returnValue = true;
-    d->readPasswordJob->setKey(key);
 
     QEventLoop loop;
     d->readPasswordJob->setKey(key);
@@ -236,6 +234,8 @@ bool Smb4KCredentialsManager::write(const QString &key, const QString &credentia
     d->writePasswordJob->setKey(key);
 
     QEventLoop loop;
+
+    d->writePasswordJob->setKey(key);
 
     QObject::connect(d->writePasswordJob, &QKeychain::WritePasswordJob::finished, [&]() {
         if (d->writePasswordJob->error()) {
