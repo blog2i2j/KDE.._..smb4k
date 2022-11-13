@@ -68,30 +68,9 @@ Smb4KPasswordDialog::~Smb4KPasswordDialog()
 
 void Smb4KPasswordDialog::slotGotUsernameAndPassword(const QString &user, const QString &pass, bool /*keep*/)
 {
-    switch (m_item->type()) {
-    case Host: {
-        HostPtr host = m_item.staticCast<Smb4KHost>();
-
-        if (host) {
-            host->setUserName(user);
-            host->setPassword(pass);
-        }
-
-        break;
-    }
-    case Share: {
-        SharePtr share = m_item.staticCast<Smb4KShare>();
-
-        if (share) {
-            share->setUserName(user);
-            share->setPassword(pass);
-        }
-
-        break;
-    }
-    default: {
-        break;
-    }
-    }
+    QUrl url = m_item->url();
+    url.setUserName(user);
+    url.setPassword(pass);
+    m_item->setUrl(url);
 }
 
