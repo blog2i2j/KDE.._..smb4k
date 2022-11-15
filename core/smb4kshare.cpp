@@ -7,7 +7,7 @@
 
 // application specific includes
 #include "smb4kshare.h"
-#include "smb4kauthinfo.h"
+#include "smb4kglobal.h"
 
 // Qt include
 #include <QDir>
@@ -19,6 +19,8 @@
 #include <KIOCore/KIO/Global>
 #include <KIOCore/KMountPoint>
 #include <KIconThemes/KIconLoader>
+
+using namespace Smb4KGlobal;
 
 class Smb4KSharePrivate
 {

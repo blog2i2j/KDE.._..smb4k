@@ -7,9 +7,9 @@
 
 // Application specific includes
 #include "smb4kmounter.h"
-#include "smb4kauthinfo.h"
 #include "smb4kbookmark.h"
 #include "smb4kbookmarkhandler.h"
+#include "smb4kcredentialsmanager.h"
 #include "smb4kcustomoptions.h"
 #include "smb4kcustomoptionsmanager.h"
 #include "smb4khardwareinterface.h"
@@ -20,7 +20,6 @@
 #include "smb4ksettings.h"
 #include "smb4kshare.h"
 #include "smb4kworkgroup.h"
-#include "smb4kcredentialsmanager.h"
 
 #if defined(Q_OS_LINUX)
 #include "smb4kmountsettings_linux.h"
