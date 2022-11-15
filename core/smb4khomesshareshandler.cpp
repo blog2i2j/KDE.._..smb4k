@@ -7,7 +7,7 @@
 
 // application specific includes
 #include "smb4khomesshareshandler.h"
-#include "smb4kauthinfo.h"
+#include "smb4kglobal.h"
 #include "smb4khomesshareshandler_p.h"
 #include "smb4knotification.h"
 #include "smb4kprofilemanager.h"
@@ -23,8 +23,9 @@
 #include <QXmlStreamWriter>
 
 // KDE includes
-#define TRANSLATION_DOMAIN "smb4k-core"
 #include <KI18n/KLocalizedString>
+
+using namespace Smb4KGlobal;
 
 Q_GLOBAL_STATIC(Smb4KHomesSharesHandlerStatic, p);
 

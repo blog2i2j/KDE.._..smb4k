@@ -9,13 +9,13 @@
 #include "smb4kcredentialsmanager.h"
 #include "smb4kcredentialsmanager_p.h"
 #include "smb4kglobal.h"
-#include "smb4kshare.h"
 #include "smb4khomesshareshandler.h"
+#include "smb4kshare.h"
 
 // Qt includes
+#include <QApplication>
 #include <QDebug>
 #include <QEventLoop>
-#include <QApplication>
 #include <QPointer>
 
 using namespace Smb4KGlobal;
@@ -108,26 +108,26 @@ bool Smb4KCredentialsManager::writeLoginCredentials(const NetworkItemPtr &networ
 
     if (networkItem) {
         switch (networkItem->type()) {
-            case Host: {
-                QString key = networkItem->url().toString(QUrl::RemoveUserInfo | QUrl::RemovePort);
-                success = write(key, networkItem->url().userInfo());
-                break;
-            }
-            case Share: {
-                SharePtr share = networkItem.staticCast<Smb4KShare>();
-                QString key;
+        case Host: {
+            QString key = networkItem->url().toString(QUrl::RemoveUserInfo | QUrl::RemovePort);
+            success = write(key, networkItem->url().userInfo());
+            break;
+        }
+        case Share: {
+            SharePtr share = networkItem.staticCast<Smb4KShare>();
+            QString key;
 
-                if (!share->isHomesShare()) {
-                    key = share->url().toString(QUrl::RemoveUserInfo | QUrl::RemovePort);
-                } else {
-                    key = share->homeUrl().toString(QUrl::RemoveUserInfo | QUrl::RemovePort);
-                }
-                success = write(key, share->url().userInfo());
-                break;
+            if (!share->isHomesShare()) {
+                key = share->url().toString(QUrl::RemoveUserInfo | QUrl::RemovePort);
+            } else {
+                key = share->homeUrl().toString(QUrl::RemoveUserInfo | QUrl::RemovePort);
             }
-            default: {
-                break;
-            }
+            success = write(key, share->url().userInfo());
+            break;
+        }
+        default: {
+            break;
+        }
         }
     }
 
@@ -160,32 +160,31 @@ bool Smb4KCredentialsManager::showPasswordDialog(const NetworkItemPtr &networkIt
     if (networkItem) {
         QMap<QString, QString> knownLogins;
 
-        switch (networkItem->type())
-        {
-            case Share: {
-                SharePtr share = networkItem.staticCast<Smb4KShare>();
+        switch (networkItem->type()) {
+        case Share: {
+            SharePtr share = networkItem.staticCast<Smb4KShare>();
 
-                if (share->isHomesShare()) {
-                    QStringList usersList = Smb4KHomesSharesHandler::self()->homesUsers(share);
+            if (share->isHomesShare()) {
+                QStringList usersList = Smb4KHomesSharesHandler::self()->homesUsers(share);
 
-                    for (const QString &user : qAsConst(usersList)) {
-                        SharePtr tempShare = SharePtr(new Smb4KShare(*share.data()));
-                        tempShare->setUserName(user);
+                for (const QString &user : qAsConst(usersList)) {
+                    SharePtr tempShare = SharePtr(new Smb4KShare(*share.data()));
+                    tempShare->setUserName(user);
 
-                        readLoginCredentials(tempShare);
-                        knownLogins.insert(tempShare->userName(), tempShare->password());
+                    readLoginCredentials(tempShare);
+                    knownLogins.insert(tempShare->userName(), tempShare->password());
 
-                        tempShare.clear();
-                    }
-                } else {
-                    readLoginCredentials(networkItem);
+                    tempShare.clear();
                 }
-                break;
-            }
-            default: {
+            } else {
                 readLoginCredentials(networkItem);
-                break;
             }
+            break;
+        }
+        default: {
+            readLoginCredentials(networkItem);
+            break;
+        }
         }
 
         QPointer<Smb4KPasswordDialog> dlg = new Smb4KPasswordDialog(networkItem, knownLogins, QApplication::activeWindow());
@@ -195,7 +194,6 @@ bool Smb4KCredentialsManager::showPasswordDialog(const NetworkItemPtr &networkIt
         }
 
         delete dlg;
-
     }
 
     return success;
