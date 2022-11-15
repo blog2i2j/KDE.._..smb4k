@@ -16,7 +16,6 @@
 #include <QApplication>
 #include <QDebug>
 #include <QEventLoop>
-#include <QApplication>
 #include <QPointer>
 
 using namespace Smb4KGlobal;
@@ -195,7 +194,6 @@ bool Smb4KCredentialsManager::showPasswordDialog(const NetworkItemPtr &networkIt
         }
 
         delete dlg;
-
     }
 
     return success;
