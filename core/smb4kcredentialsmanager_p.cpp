@@ -73,3 +73,4 @@ void Smb4KPasswordDialog::slotGotUsernameAndPassword(const QString &user, const 
     url.setPassword(pass);
     m_item->setUrl(url);
 }
+
