@@ -9,7 +9,6 @@ include_directories(
   ${LIBSMBCLIENT_INCLUDE_DIRS})
 
 set(smb4kcore_LIB_SRCS
-  smb4kauthinfo.cpp
   smb4kbasicnetworkitem.cpp
   smb4kbookmark.cpp
   smb4kbookmarkhandler.cpp
