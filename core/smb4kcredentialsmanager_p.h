@@ -9,8 +9,8 @@
 #define SMB4KCREDENTIALSMANAGER_P_H
 
 // application specific includes
-#include "smb4kglobal.h"
 #include "smb4kcredentialsmanager.h"
+#include "smb4kglobal.h"
 
 // KDE includes
 #include <KWidgetsAddons/KPasswordDialog>
