@@ -20,7 +20,6 @@
 #include "smb4ksettings.h"
 #include "smb4kshare.h"
 #include "smb4kworkgroup.h"
-#include "smb4kcredentialsmanager.h"
 
 #if defined(Q_OS_LINUX)
 #include "smb4kmountsettings_linux.h"
