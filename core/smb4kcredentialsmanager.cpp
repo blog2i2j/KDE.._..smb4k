@@ -231,10 +231,6 @@ bool Smb4KCredentialsManager::write(const QString &key, const QString &credentia
     QEventLoop loop;
     d->writePasswordJob->setKey(key);
 
-    d->writePasswordJob->setKey(key);
-
-    d->writePasswordJob->setKey(key);
-
     QObject::connect(d->writePasswordJob, &QKeychain::WritePasswordJob::finished, [&]() {
         if (d->writePasswordJob->error()) {
             qDebug() << "Write error:" << d->writePasswordJob->errorString();
