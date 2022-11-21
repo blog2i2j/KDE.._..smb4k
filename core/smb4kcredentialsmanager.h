@@ -126,6 +126,11 @@ private:
     void remove(const QString &key);
 
     /**
+     * This function migrates the old credentials.
+     */
+    void migrate();
+
+    /**
      * Pointer to the Smb4KWalletManagerPrivate class
      */
     const QScopedPointer<Smb4KCredentialsManagerPrivate> d;

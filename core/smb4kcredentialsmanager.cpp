@@ -18,6 +18,12 @@
 #include <QEventLoop>
 #include <QPointer>
 
+// Includes for importing old credentials
+#include "smb4ksettings.h"
+#include <KConfigCore/KConfigGroup>
+#include <KWallet/KWallet>
+#include <QStandardPaths>
+
 using namespace Smb4KGlobal;
 
 Q_GLOBAL_STATIC(Smb4KCredentialsManagerStatic, p);
@@ -49,6 +55,9 @@ bool Smb4KCredentialsManager::readLoginCredentials(const NetworkItemPtr &network
 {
     Q_ASSERT(networkItem);
     bool success = false;
+
+    // For backward compatibility. Remove in the future again.
+    migrate();
 
     if (networkItem) {
         QString userInfo;
@@ -264,4 +273,59 @@ void Smb4KCredentialsManager::remove(const QString &key)
     d->deletePasswordJob->start();
 
     loop.exec();
+}
+
+void Smb4KCredentialsManager::migrate()
+{
+    // Only consider migrating login credentials if Smb4K was already installed and
+    // no migration has been done before.
+    QString configFile = QStandardPaths::locate(QStandardPaths::ConfigLocation, QStringLiteral("smb4krc"), QStandardPaths::LocateFile);
+    KConfigGroup authenticationGroup(Smb4KSettings::self()->config(), QStringLiteral("Authentication"));
+
+    if (!configFile.isEmpty()) {
+        if (!authenticationGroup.hasKey(QStringLiteral("MigratedToKeychain"))) {
+            KWallet::Wallet *wallet =
+                KWallet::Wallet::openWallet(KWallet::Wallet::NetworkWallet(), QApplication::activeWindow() ? QApplication::activeWindow()->winId() : 0);
+
+            if (wallet && wallet->isOpen()) {
+                if (wallet->hasFolder(QStringLiteral("Smb4K"))) {
+                    wallet->setFolder(QStringLiteral("Smb4K"));
+
+                    bool ok = false;
+                    QMap<QString, QMap<QString, QString>> allWalletEntries = wallet->mapList(&ok);
+
+                    if (ok) {
+                        QMapIterator<QString, QMap<QString, QString>> it(allWalletEntries);
+
+                        while (it.hasNext()) {
+                            it.next();
+
+                            if (it.key() == QStringLiteral("DEFAULT_LOGIN")) {
+                                QUrl url;
+                                url.setUserName(it.value().value(QStringLiteral("Login")));
+                                url.setPassword(it.value().value(QStringLiteral("Password")));
+                                write(QStringLiteral("DEFAULT_CREDENTIALS"), url.userInfo());
+                            } else {
+                                QUrl url;
+                                url.setUrl(it.key(), QUrl::TolerantMode);
+                                url.setUserName(it.value().value(QStringLiteral("Login")));
+                                url.setPassword(it.value().value(QStringLiteral("Password")));
+                                write(it.key(), url.userInfo());
+                            }
+                        }
+                    }
+
+                    // wallet->removeFolder(QStringLiteral("Smb4K"));
+
+                    authenticationGroup.writeEntry(QStringLiteral("MigratedToKeychain"), true);
+                    authenticationGroup.sync();
+                }
+            }
+
+            delete wallet;
+        }
+    } else {
+        authenticationGroup.writeEntry(QStringLiteral("MigratedToKeychain"), true);
+        authenticationGroup.sync();
+    }
 }
