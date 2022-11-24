@@ -63,6 +63,8 @@ public:
         Workgroup = Smb4KGlobal::Workgroup,
         Host = Smb4KGlobal::Host,
         Share = Smb4KGlobal::Share,
+        Directory = Smb4KGlobal::Directory,
+        File = Smb4KGlobal::File,
         Unknown = Smb4KGlobal::UnknownNetworkItem
     };
     Q_ENUM(NetworkItem)
