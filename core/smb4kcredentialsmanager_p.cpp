@@ -22,13 +22,19 @@ Smb4KPasswordDialog::Smb4KPasswordDialog(const NetworkItemPtr &networkItem, cons
     m_item = networkItem;
 
     switch (m_item->type()) {
+    case Network: {
+        setUsername(m_item->url().userName());
+        setPassword(m_item->url().password());
+        setPrompt(i18n("Please enter a username and password for the default login."));
+        break;
+    }
     case Host: {
         HostPtr host = m_item.staticCast<Smb4KHost>();
 
         if (host) {
             setUsername(host->userName());
             setPassword(host->password());
-            setPrompt(i18n("<qt>Please enter a username and a password for the host <b>%1</b>.</qt>", host->hostName()));
+            setPrompt(i18n("Please enter a username and a password for the host <b>%1</b>.", host->hostName()));
         }
 
         break;
@@ -46,9 +52,9 @@ Smb4KPasswordDialog::Smb4KPasswordDialog(const NetworkItemPtr &networkItem, cons
             }
 
             if (!share->isHomesShare()) {
-                setPrompt(i18n("<qt>Please enter a username and a password for the share <b>%1</b>.</qt>", share->displayString()));
+                setPrompt(i18n("Please enter a username and a password for the share <b>%1</b>.", share->displayString()));
             } else {
-                setPrompt(i18n("<qt>Please enter a username and a password for the share <b>%1</b>.</qt>", share->displayString(true)));
+                setPrompt(i18n("Please enter a username and a password for the share <b>%1</b>.", share->displayString(true)));
             }
         }
 

@@ -20,8 +20,8 @@
 
 // Includes for importing old credentials
 #include "smb4ksettings.h"
-#include <KConfigCore/KConfigGroup>
-#include <KWallet/KWallet>
+#include <KConfigGroup>
+#include <KWallet>
 #include <QStandardPaths>
 
 using namespace Smb4KGlobal;
@@ -57,19 +57,34 @@ bool Smb4KCredentialsManager::readLoginCredentials(const NetworkItemPtr &network
     bool success = false;
 
     // For backward compatibility. Remove in the future again.
+    // FIXME: Handle return value!?
     migrate();
 
     if (networkItem) {
         QString userInfo;
 
         switch (networkItem->type()) {
+        case Network: {
+            // The url should only contain "smb://"...
+            QString key = networkItem->url().toString(QUrl::RemoveUserInfo | QUrl::RemovePort);
+
+            qDebug() << "Key for default login information:" << key;
+
+            success = (read(key, &userInfo) == QKeychain::NoError);
+            break;
+        }
         case Host: {
             QString key = networkItem->url().toString(QUrl::RemoveUserInfo | QUrl::RemovePort);
 
-            if (!(success = read(key, &userInfo))) {
-                key = QStringLiteral("DEFAULT_CREDENTIALS");
-                success = read(key, &userInfo);
+            int returnValue = read(key, &userInfo);
+
+            if (returnValue == QKeychain::EntryNotFound) {
+                key = QStringLiteral("smb://");
+                returnValue = read(key, &userInfo);
             }
+
+            success = (returnValue == QKeychain::NoError);
+
             break;
         }
         case Share: {
@@ -82,22 +97,25 @@ bool Smb4KCredentialsManager::readLoginCredentials(const NetworkItemPtr &network
                 key = share->homeUrl().toString(QUrl::RemoveUserInfo | QUrl::RemovePort);
             }
 
-            if (!(success = read(key, &userInfo))) {
+            int returnValue = read(key, &userInfo);
+
+            if (returnValue == QKeychain::EntryNotFound){
                 key = share->url().adjusted(QUrl::RemovePath | QUrl::StripTrailingSlash).toString(QUrl::RemoveUserInfo | QUrl::RemovePort);
 
-                if (!(success = read(key, &userInfo))) {
-                    key = QStringLiteral("DEFAULT_CREDENTIALS");
-                    success = read(key, &userInfo);
+                returnValue = read(key, &userInfo);
+
+                if (returnValue == QKeychain::EntryNotFound) {
+                    key = QStringLiteral("smb://");
+                    returnValue = read(key, &userInfo);
                 }
             }
-            break;
-        }
-        case UnknownNetworkItem: {
-            QString key = QStringLiteral("DEFAULT_CREDENTIALS");
-            success = read(key, &userInfo);
+
+            success = (returnValue == QKeychain::NoError);
+
             break;
         }
         default: {
+            qDebug() << "No credentials for this type of network item";
             break;
         }
         }
@@ -119,7 +137,7 @@ bool Smb4KCredentialsManager::writeLoginCredentials(const NetworkItemPtr &networ
         switch (networkItem->type()) {
         case Host: {
             QString key = networkItem->url().toString(QUrl::RemoveUserInfo | QUrl::RemovePort);
-            success = write(key, networkItem->url().userInfo());
+            success = (write(key, networkItem->url().userInfo()) == QKeychain::NoError);
             break;
         }
         case Share: {
@@ -131,7 +149,7 @@ bool Smb4KCredentialsManager::writeLoginCredentials(const NetworkItemPtr &networ
             } else {
                 key = share->homeUrl().toString(QUrl::RemoveUserInfo | QUrl::RemovePort);
             }
-            success = write(key, share->url().userInfo());
+            success = (write(key, share->url().userInfo()) == QKeychain::NoError);
             break;
         }
         default: {
@@ -145,15 +163,15 @@ bool Smb4KCredentialsManager::writeLoginCredentials(const NetworkItemPtr &networ
 
 bool Smb4KCredentialsManager::writeDefaultLoginCredentials(const QString &credentials)
 {
-    return write(QStringLiteral("DEFAULT_CREDENTIALS"), credentials);
+    return (write(QStringLiteral("smb://"), credentials) == QKeychain::NoError);
 }
 
 bool Smb4KCredentialsManager::hasDefaultCredentials() const
 {
-    QString key = QStringLiteral("DEFAULT_CREDENTIALS");
+    QString key = QStringLiteral("smb://");
     QString credentials;
 
-    if (read(key, &credentials)) {
+    if (read(key, &credentials) == QKeychain::NoError) {
         return true;
     }
 
@@ -163,6 +181,9 @@ bool Smb4KCredentialsManager::hasDefaultCredentials() const
 bool Smb4KCredentialsManager::showPasswordDialog(const NetworkItemPtr &networkItem)
 {
     Q_ASSERT(networkItem);
+
+    // FIXME: Do not harass the user by dialogs if he/she already denied access to
+    // the secure storage or the secure storage did not open due to another reason.
 
     bool success = false;
 
@@ -208,9 +229,9 @@ bool Smb4KCredentialsManager::showPasswordDialog(const NetworkItemPtr &networkIt
     return success;
 }
 
-bool Smb4KCredentialsManager::read(const QString &key, QString *credentials) const
+int Smb4KCredentialsManager::read(const QString &key, QString *credentials) const
 {
-    bool returnValue = true;
+    int returnValue = QKeychain::NoError;
 
     QEventLoop loop;
     d->readPasswordJob->setKey(key);
@@ -218,7 +239,7 @@ bool Smb4KCredentialsManager::read(const QString &key, QString *credentials) con
     QObject::connect(d->readPasswordJob, &QKeychain::ReadPasswordJob::finished, [&]() {
         if (d->readPasswordJob->error()) {
             qDebug() << "Read error:" << d->readPasswordJob->errorString();
-            returnValue = false;
+            returnValue = d->readPasswordJob->error();
         } else {
             *credentials = d->readPasswordJob->textData();
         }
@@ -233,9 +254,9 @@ bool Smb4KCredentialsManager::read(const QString &key, QString *credentials) con
     return returnValue;
 }
 
-bool Smb4KCredentialsManager::write(const QString &key, const QString &credentials) const
+int Smb4KCredentialsManager::write(const QString &key, const QString &credentials) const
 {
-    bool returnValue = true;
+    int returnValue = QKeychain::NoError;
 
     QEventLoop loop;
     d->writePasswordJob->setKey(key);
@@ -243,7 +264,7 @@ bool Smb4KCredentialsManager::write(const QString &key, const QString &credentia
     QObject::connect(d->writePasswordJob, &QKeychain::WritePasswordJob::finished, [&]() {
         if (d->writePasswordJob->error()) {
             qDebug() << "Write error:" << d->writePasswordJob->errorString();
-            returnValue = false;
+            returnValue = d->readPasswordJob->error();
         }
 
         loop.exit(d->writePasswordJob->error());
@@ -257,14 +278,16 @@ bool Smb4KCredentialsManager::write(const QString &key, const QString &credentia
     return returnValue;
 }
 
-void Smb4KCredentialsManager::remove(const QString &key)
+int Smb4KCredentialsManager::remove(const QString &key)
 {
+    int returnValue = QKeychain::NoError;
     QEventLoop loop;
     d->deletePasswordJob->setKey(key);
 
     QObject::connect(d->deletePasswordJob, &QKeychain::WritePasswordJob::finished, [&]() {
         if (d->deletePasswordJob->error()) {
             qDebug() << "Delete error:" << d->deletePasswordJob->errorString();
+            returnValue = d->deletePasswordJob->error();
         }
 
         loop.exit(d->deletePasswordJob->error());
@@ -273,10 +296,14 @@ void Smb4KCredentialsManager::remove(const QString &key)
     d->deletePasswordJob->start();
 
     loop.exec();
+
+    return returnValue;
 }
 
-void Smb4KCredentialsManager::migrate()
+int Smb4KCredentialsManager::migrate()
 {
+    int returnValue = QKeychain::NoError;
+
     // Only consider migrating login credentials if Smb4K was already installed and
     // no migration has been done before.
     QString configFile = QStandardPaths::locate(QStandardPaths::ConfigLocation, QStringLiteral("smb4krc"), QStandardPaths::LocateFile);
@@ -304,13 +331,13 @@ void Smb4KCredentialsManager::migrate()
                                 QUrl url;
                                 url.setUserName(it.value().value(QStringLiteral("Login")));
                                 url.setPassword(it.value().value(QStringLiteral("Password")));
-                                write(QStringLiteral("DEFAULT_CREDENTIALS"), url.userInfo());
+                                returnValue = write(QStringLiteral("smb://"), url.userInfo());
                             } else {
                                 QUrl url;
                                 url.setUrl(it.key(), QUrl::TolerantMode);
                                 url.setUserName(it.value().value(QStringLiteral("Login")));
                                 url.setPassword(it.value().value(QStringLiteral("Password")));
-                                write(it.key(), url.userInfo());
+                                returnValue = write(it.key(), url.userInfo());
                             }
                         }
                     }
@@ -328,4 +355,6 @@ void Smb4KCredentialsManager::migrate()
         authenticationGroup.writeEntry(QStringLiteral("MigratedToKeychain"), true);
         authenticationGroup.sync();
     }
+
+    return returnValue;
 }

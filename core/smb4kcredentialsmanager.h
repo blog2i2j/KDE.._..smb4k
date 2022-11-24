@@ -107,7 +107,7 @@ private:
      *
      * @returns TRUE if everything worked out fine.
      */
-    bool read(const QString &key, QString *credentials) const;
+    int read(const QString &key, QString *credentials) const;
 
     /**
      * Write the login credentials to the secure storage.
@@ -116,19 +116,19 @@ private:
      *
      * @param credentials   The credentials string
      */
-    bool write(const QString &key, const QString &credentials) const;
+    int write(const QString &key, const QString &credentials) const;
 
     /**
      * Delete the login credentials from the secure storage.
      *
      * @param key           The key for the credentials
      */
-    void remove(const QString &key);
+    int remove(const QString &key);
 
     /**
      * This function migrates the old credentials.
      */
-    void migrate();
+    int migrate();
 
     /**
      * Pointer to the Smb4KWalletManagerPrivate class
