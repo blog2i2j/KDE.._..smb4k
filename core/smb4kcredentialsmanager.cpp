@@ -62,10 +62,10 @@ bool Smb4KCredentialsManager::readLoginCredentials(const NetworkItemPtr &network
 
     // For backward compatibility. Remove in the future again.
     // FIXME: Handle return value!?
-    migrate();
+    (void)migrate();
 
     if (networkItem) {
-        QString userInfo(QStringLiteral("guest"));
+        QString userInfo;
 
         switch (networkItem->type()) {
         case Network: {
@@ -77,14 +77,14 @@ bool Smb4KCredentialsManager::readLoginCredentials(const NetworkItemPtr &network
         case Host: {
             QString key = networkItem->url().toString(QUrl::RemoveUserInfo | QUrl::RemovePort);
 
-            int returnValue = read(key, &userInfo);
+            int returnCode = read(key, &userInfo);
 
-            if (returnValue == QKeychain::EntryNotFound) {
+            if (returnCode == QKeychain::EntryNotFound) {
                 key = QStringLiteral("smb://");
-                returnValue = read(key, &userInfo);
+                returnCode = read(key, &userInfo);
             }
 
-            success = (returnValue == QKeychain::NoError);
+            success = (returnCode == QKeychain::NoError);
 
             break;
         }
@@ -98,20 +98,20 @@ bool Smb4KCredentialsManager::readLoginCredentials(const NetworkItemPtr &network
                 key = share->homeUrl().toString(QUrl::RemoveUserInfo | QUrl::RemovePort);
             }
 
-            int returnValue = read(key, &userInfo);
+            int returnCode = read(key, &userInfo);
 
-            if (returnValue == QKeychain::EntryNotFound) {
+            if (returnCode == QKeychain::EntryNotFound) {
                 key = share->url().adjusted(QUrl::RemovePath | QUrl::StripTrailingSlash).toString(QUrl::RemoveUserInfo | QUrl::RemovePort);
 
-                returnValue = read(key, &userInfo);
+                returnCode = read(key, &userInfo);
 
-                if (returnValue == QKeychain::EntryNotFound) {
+                if (returnCode == QKeychain::EntryNotFound) {
                     key = QStringLiteral("smb://");
-                    returnValue = read(key, &userInfo);
+                    returnCode = read(key, &userInfo);
                 }
             }
 
-            success = (returnValue == QKeychain::NoError);
+            success = (returnCode == QKeychain::NoError);
 
             break;
         }
@@ -183,17 +183,24 @@ bool Smb4KCredentialsManager::showPasswordDialog(const NetworkItemPtr &networkIt
 {
     Q_ASSERT(networkItem);
 
-    // FIXME: Do not harass the user by dialogs if he/she already denied access to
-    // the secure storage or the secure storage did not open due to another reason.
+    // For backward compatibility. Remove in the future again.
+    // FIXME: Handle return value!?
+    (void)migrate();
+
+    // Do not harass the user with dialogs if he/she already denied access to the
+    // secure storage or the secure storage did not open due to another reason.
 
     bool success = false;
 
     if (networkItem) {
         QMap<QString, QString> knownLogins;
+        int returnCode = QKeychain::NoError;
+        QString userInfo;
 
         switch (networkItem->type()) {
         case Share: {
             SharePtr share = networkItem.staticCast<Smb4KShare>();
+            QString key;
 
             if (share->isHomesShare()) {
                 QStringList usersList = Smb4KHomesSharesHandler::self()->homesUsers(share);
@@ -202,29 +209,54 @@ bool Smb4KCredentialsManager::showPasswordDialog(const NetworkItemPtr &networkIt
                     SharePtr tempShare = SharePtr(new Smb4KShare(*share.data()));
                     tempShare->setUserName(user);
 
-                    readLoginCredentials(tempShare);
-                    knownLogins.insert(tempShare->userName(), tempShare->password());
+                    // The credentials should be present, so we only look for this
+                    // specific pair.
+                    key = tempShare->homeUrl().toString(QUrl::RemoveUserInfo | QUrl::RemovePort);
+
+                    if ((returnCode = read(key, &userInfo)) == QKeychain::NoError) {
+                        knownLogins.insert(tempShare->userName(), tempShare->password());
+                    }
 
                     tempShare.clear();
                 }
             } else {
-                readLoginCredentials(networkItem);
+                key = share->url().toString(QUrl::RemoveUserInfo | QUrl::RemovePort);
+
+                if ((returnCode = read(key, &userInfo)) == QKeychain::EntryNotFound) {
+                    key = share->url().adjusted(QUrl::RemovePath | QUrl::StripTrailingSlash).toString(QUrl::RemoveUserInfo | QUrl::RemovePort);
+
+                    if ((returnCode = read(key, &userInfo)) == QKeychain::EntryNotFound) {
+                        key = QStringLiteral("smb://");
+                        returnCode = read(key, &userInfo);
+                    }
+                }
             }
             break;
         }
         default: {
-            readLoginCredentials(networkItem);
+            QString key = networkItem->url().toString(QUrl::RemoveUserInfo | QUrl::RemovePort);
+
+            if ((returnCode = read(key, &userInfo)) == QKeychain::EntryNotFound) {
+                key = QStringLiteral("smb://");
+                returnCode = read(key, &userInfo);
+            }
             break;
         }
         }
 
-        QPointer<Smb4KPasswordDialog> dlg = new Smb4KPasswordDialog(networkItem, knownLogins, QApplication::activeWindow());
+        if (returnCode == QKeychain::NoError || returnCode == QKeychain::EntryNotFound) {
+            QUrl url = networkItem->url();
+            url.setUserInfo(userInfo);
+            networkItem->setUrl(url);
 
-        if (dlg->exec() == Smb4KPasswordDialog::Accepted) {
-            success = writeLoginCredentials(networkItem);
+            QPointer<Smb4KPasswordDialog> dlg = new Smb4KPasswordDialog(networkItem, knownLogins, QApplication::activeWindow());
+
+            if (dlg->exec() == Smb4KPasswordDialog::Accepted) {
+                success = writeLoginCredentials(networkItem);
+            }
+
+            delete dlg;
         }
-
-        delete dlg;
     }
 
     return success;
@@ -244,9 +276,9 @@ int Smb4KCredentialsManager::read(const QString &key, QString *credentials) cons
         } else {
             *credentials = d->readPasswordJob->textData();
         }
-
-        loop.exit(d->readPasswordJob->error());
     });
+
+    QObject::connect(d->readPasswordJob, &QKeychain::ReadPasswordJob::finished, &loop, &QEventLoop::quit);
 
     d->readPasswordJob->start();
 
@@ -267,9 +299,9 @@ int Smb4KCredentialsManager::write(const QString &key, const QString &credential
             qDebug() << "Write error:" << d->writePasswordJob->errorString();
             returnValue = d->readPasswordJob->error();
         }
-
-        loop.exit(d->writePasswordJob->error());
     });
+
+    QObject::connect(d->writePasswordJob, &QKeychain::WritePasswordJob::finished, &loop, &QEventLoop::quit);
 
     d->writePasswordJob->setTextData(credentials);
     d->writePasswordJob->start();
@@ -290,9 +322,9 @@ int Smb4KCredentialsManager::remove(const QString &key)
             qDebug() << "Delete error:" << d->deletePasswordJob->errorString();
             returnValue = d->deletePasswordJob->error();
         }
-
-        loop.exit(d->deletePasswordJob->error());
     });
+
+    QObject::connect(d->deletePasswordJob, &QKeychain::DeletePasswordJob::finished, &loop, &QEventLoop::quit);
 
     d->deletePasswordJob->start();
 
@@ -307,84 +339,77 @@ int Smb4KCredentialsManager::migrate()
 
     // Only consider migrating login credentials if Smb4K was already installed and
     // no migration has been done before.
-    QString configFile = QStandardPaths::locate(QStandardPaths::ConfigLocation, QStringLiteral("smb4krc"), QStandardPaths::LocateFile);
     KConfigGroup authenticationGroup(Smb4KSettings::self()->config(), QStringLiteral("Authentication"));
 
-    if (!configFile.isEmpty()) {
-        if (!authenticationGroup.hasKey(QStringLiteral("MigratedToKeychain"))) {
+    if (authenticationGroup.exists() && !authenticationGroup.hasKey(QStringLiteral("MigratedToKeychain"))) {
 #if (KWIDGETSADDONS_VERSION >= QT_VERSION_CHECK(5, 100, 0))
-            int buttonCode = KMessageBox::questionTwoActionsCancel(
-                QApplication::activeWindow() ? QApplication::activeWindow() : nullptr,
-                i18n("Smb4K now stores the credentials in the secure storage under <b>org.kde.smb4k</b>. Do you want to migrate your credentials?"),
-                i18n("Migrate Credentials"),
-                KGuiItem(i18n("Migrate"), KDE::icon("edit-duplicate")),
-                KGuiItem(i18n("Don't migrate"), KDE::icon("edit-delete-remove")),
-                KStandardGuiItem::cancel());
+        int buttonCode = KMessageBox::questionTwoActionsCancel(
+            QApplication::activeWindow() ? QApplication::activeWindow() : nullptr,
+            i18n("<qt>Smb4K now stores the credentials in the secure storage under <b>org.kde.smb4k</b>. \nDo you want to migrate your credentials?</qt>"),
+            i18n("Migrate Credentials"),
+            KGuiItem(i18n("Migrate"), KDE::icon("edit-duplicate")),
+            KGuiItem(i18n("Don't migrate"), KDE::icon("edit-delete-remove")),
+            KStandardGuiItem::cancel());
 
-            if (buttonCode == KMessageBox::PrimaryAction) {
+        if (buttonCode == KMessageBox::PrimaryAction) {
 #else
-            int buttonCode = KMessageBox::questionYesNoCancel(
-                QApplication::activeWindow() ? QApplication::activeWindow() : nullptr,
-                i18n("Smb4K now stores the credentials in the secure storage under <b>org.kde.smb4k</b>. Do you want to migrate your credentials?"),
-                i18n("Migrate Credentials"),
-                KGuiItem(i18n("Migrate"), KDE::icon("edit-duplicate")),
-                KGuiItem(i18n("Don't migrate"), KDE::icon("edit-delete-remove")),
-                KStandardGuiItem::cancel());
+        int buttonCode = KMessageBox::questionYesNoCancel(
+            QApplication::activeWindow() ? QApplication::activeWindow() : nullptr,
+            i18n("<qt>Smb4K now stores the credentials in the secure storage under <b>org.kde.smb4k</b>. \nDo you want to migrate your credentials?</qt>"),
+            i18n("Migrate Credentials"),
+            KGuiItem(i18n("Migrate"), KDE::icon("edit-duplicate")),
+            KGuiItem(i18n("Don't migrate"), KDE::icon("edit-delete-remove")),
+            KStandardGuiItem::cancel());
 
-            if (buttonCode == KMessageBox::Yes) {
+        if (buttonCode == KMessageBox::Yes) {
 #endif
+            KWallet::Wallet *wallet =
+                KWallet::Wallet::openWallet(KWallet::Wallet::NetworkWallet(), QApplication::activeWindow() ? QApplication::activeWindow()->winId() : 0);
 
-                KWallet::Wallet *wallet =
-                    KWallet::Wallet::openWallet(KWallet::Wallet::NetworkWallet(), QApplication::activeWindow() ? QApplication::activeWindow()->winId() : 0);
+            if (wallet && wallet->isOpen()) {
+                if (wallet->hasFolder(QStringLiteral("Smb4K"))) {
+                    wallet->setFolder(QStringLiteral("Smb4K"));
 
-                if (wallet && wallet->isOpen()) {
-                    if (wallet->hasFolder(QStringLiteral("Smb4K"))) {
-                        wallet->setFolder(QStringLiteral("Smb4K"));
+                    bool ok = false;
+                    QMap<QString, QMap<QString, QString>> allWalletEntries = wallet->mapList(&ok);
 
-                        bool ok = false;
-                        QMap<QString, QMap<QString, QString>> allWalletEntries = wallet->mapList(&ok);
+                    if (ok) {
+                        QMapIterator<QString, QMap<QString, QString>> it(allWalletEntries);
 
-                        if (ok) {
-                            QMapIterator<QString, QMap<QString, QString>> it(allWalletEntries);
+                        while (it.hasNext()) {
+                            it.next();
 
-                            while (it.hasNext()) {
-                                it.next();
-
-                                if (it.key() == QStringLiteral("DEFAULT_LOGIN")) {
-                                    QUrl url;
-                                    url.setUserName(it.value().value(QStringLiteral("Login")));
-                                    url.setPassword(it.value().value(QStringLiteral("Password")));
-                                    returnValue = write(QStringLiteral("smb://"), url.userInfo());
-                                } else {
-                                    QUrl url;
-                                    url.setUrl(it.key(), QUrl::TolerantMode);
-                                    url.setUserName(it.value().value(QStringLiteral("Login")));
-                                    url.setPassword(it.value().value(QStringLiteral("Password")));
-                                    returnValue = write(it.key(), url.userInfo());
-                                }
+                            if (it.key() == QStringLiteral("DEFAULT_LOGIN")) {
+                                QUrl url;
+                                url.setUserName(it.value().value(QStringLiteral("Login")));
+                                url.setPassword(it.value().value(QStringLiteral("Password")));
+                                returnValue = write(QStringLiteral("smb://"), url.userInfo());
+                            } else {
+                                QUrl url;
+                                url.setUrl(it.key(), QUrl::TolerantMode);
+                                url.setUserName(it.value().value(QStringLiteral("Login")));
+                                url.setPassword(it.value().value(QStringLiteral("Password")));
+                                returnValue = write(it.key(), url.userInfo());
                             }
                         }
-
-                        // wallet->removeFolder(QStringLiteral("Smb4K"));
-
-                        authenticationGroup.writeEntry(QStringLiteral("MigratedToKeychain"), true);
-                        authenticationGroup.sync();
                     }
+
+                    // wallet->removeFolder(QStringLiteral("Smb4K"));
                 }
 
-                delete wallet;
-#if (KWIDGETSADDONS_VERSION >= QT_VERSION_CHECK(5, 100, 0))
-            } else if (buttonCode == KMessageBox::SecondaryAction) {
-#else
-            } else if (buttonCode == KMessageBox::No) {
-#endif
-                authenticationGroup.writeEntry(QStringLiteral("MigratedToKeychain"), false);
+                authenticationGroup.writeEntry(QStringLiteral("MigratedToKeychain"), true);
                 authenticationGroup.sync();
             }
+
+            delete wallet;
+#if (KWIDGETSADDONS_VERSION >= QT_VERSION_CHECK(5, 100, 0))
+        } else if (buttonCode == KMessageBox::SecondaryAction) {
+#else
+        } else if (buttonCode == KMessageBox::No) {
+#endif
+            authenticationGroup.writeEntry(QStringLiteral("MigratedToKeychain"), false);
+            authenticationGroup.sync();
         }
-    } else {
-        authenticationGroup.writeEntry(QStringLiteral("MigratedToKeychain"), true);
-        authenticationGroup.sync();
     }
 
     return returnValue;
