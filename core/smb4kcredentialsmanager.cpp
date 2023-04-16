@@ -20,12 +20,11 @@
 
 // Includes for importing old credentials
 #include "smb4ksettings.h"
-#include <KConfigCore/KConfigGroup>
-#include <KI18n/KLocalizedString>
-#include <KWallet/KWallet>
-#include <KWidgetsAddons/KGuiItem>
-#include <KWidgetsAddons/KMessageBox>
-#include <KWidgetsAddons/kwidgetsaddons_version.h>
+#include <KConfigGroup>
+#include <KLocalizedString>
+#include <KWallet>
+#include <KGuiItem>
+#include <KMessageBox>
 #include <QStandardPaths>
 
 using namespace Smb4KGlobal;
@@ -342,7 +341,6 @@ int Smb4KCredentialsManager::migrate()
     KConfigGroup authenticationGroup(Smb4KSettings::self()->config(), QStringLiteral("Authentication"));
 
     if (authenticationGroup.exists() && !authenticationGroup.hasKey(QStringLiteral("MigratedToKeychain"))) {
-#if (KWIDGETSADDONS_VERSION >= QT_VERSION_CHECK(5, 100, 0))
         int buttonCode = KMessageBox::questionTwoActionsCancel(
             QApplication::activeWindow() ? QApplication::activeWindow() : nullptr,
             i18n("<qt>Smb4K now stores the credentials in the secure storage under <b>org.kde.smb4k</b>. \nDo you want to migrate your credentials?</qt>"),
@@ -352,17 +350,6 @@ int Smb4KCredentialsManager::migrate()
             KStandardGuiItem::cancel());
 
         if (buttonCode == KMessageBox::PrimaryAction) {
-#else
-        int buttonCode = KMessageBox::questionYesNoCancel(
-            QApplication::activeWindow() ? QApplication::activeWindow() : nullptr,
-            i18n("<qt>Smb4K now stores the credentials in the secure storage under <b>org.kde.smb4k</b>. \nDo you want to migrate your credentials?</qt>"),
-            i18n("Migrate Credentials"),
-            KGuiItem(i18n("Migrate"), KDE::icon("edit-duplicate")),
-            KGuiItem(i18n("Don't migrate"), KDE::icon("edit-delete-remove")),
-            KStandardGuiItem::cancel());
-
-        if (buttonCode == KMessageBox::Yes) {
-#endif
             KWallet::Wallet *wallet =
                 KWallet::Wallet::openWallet(KWallet::Wallet::NetworkWallet(), QApplication::activeWindow() ? QApplication::activeWindow()->winId() : 0);
 
@@ -402,11 +389,7 @@ int Smb4KCredentialsManager::migrate()
             }
 
             delete wallet;
-#if (KWIDGETSADDONS_VERSION >= QT_VERSION_CHECK(5, 100, 0))
         } else if (buttonCode == KMessageBox::SecondaryAction) {
-#else
-        } else if (buttonCode == KMessageBox::No) {
-#endif
             authenticationGroup.writeEntry(QStringLiteral("MigratedToKeychain"), false);
             authenticationGroup.sync();
         }
