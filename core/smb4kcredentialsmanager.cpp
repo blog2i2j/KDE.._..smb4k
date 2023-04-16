@@ -345,8 +345,8 @@ int Smb4KCredentialsManager::migrate()
             QApplication::activeWindow() ? QApplication::activeWindow() : nullptr,
             i18n("<qt>Smb4K now stores the credentials in the secure storage under <b>org.kde.smb4k</b>. \nDo you want to migrate your credentials?</qt>"),
             i18n("Migrate Credentials"),
-            KGuiItem(i18n("Migrate"), KDE::icon("edit-duplicate")),
-            KGuiItem(i18n("Don't migrate"), KDE::icon("edit-delete-remove")),
+            KGuiItem(i18n("Migrate"), KDE::icon(QStringLiteral("edit-duplicate"))),
+            KGuiItem(i18n("Don't migrate"), KDE::icon(QStringLiteral("edit-delete-remove"))),
             KStandardGuiItem::cancel());
 
         if (buttonCode == KMessageBox::PrimaryAction) {
