@@ -16,7 +16,11 @@
 #include <KPasswordDialog>
 
 // QtKeychain include
+#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
+#include <qt6keychain/keychain.h>
+#else
 #include <qt5keychain/keychain.h>
+#endif
 
 class Smb4KPasswordDialog : public KPasswordDialog
 {
