@@ -22,12 +22,6 @@
 
 using namespace Smb4KGlobal;
 
-using namespace Smb4KGlobal;
-
-using namespace Smb4KGlobal;
-
-using namespace Smb4KGlobal;
-
 class Smb4KSharePrivate
 {
 public:
