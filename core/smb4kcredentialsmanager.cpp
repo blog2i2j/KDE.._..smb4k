@@ -21,10 +21,10 @@
 // Includes for importing old credentials
 #include "smb4ksettings.h"
 #include <KConfigGroup>
-#include <KLocalizedString>
-#include <KWallet>
 #include <KGuiItem>
+#include <KLocalizedString>
 #include <KMessageBox>
+#include <KWallet>
 #include <QStandardPaths>
 
 using namespace Smb4KGlobal;
