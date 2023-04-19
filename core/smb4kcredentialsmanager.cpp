@@ -340,7 +340,7 @@ int Smb4KCredentialsManager::migrate()
     // no migration has been done before.
     KConfigGroup authenticationGroup(Smb4KSettings::self()->config(), QStringLiteral("Authentication"));
 
-    if (authenticationGroup.exists() && !authenticationGroup.hasKey(QStringLiteral("MigratedToKeychain"))) {
+    if (!authenticationGroup.hasKey(QStringLiteral("MigratedToKeychain"))) {
         int buttonCode = KMessageBox::questionTwoActionsCancel(
             QApplication::activeWindow() ? QApplication::activeWindow() : nullptr,
             i18n("<qt>Smb4K now stores the credentials in the secure storage under <b>org.kde.smb4k</b>. \nDo you want to migrate your credentials?</qt>"),
