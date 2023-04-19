@@ -1,6 +1,12 @@
 # SPDX-License-Identifier: BSD-2-Clause
 # SPDX-FileCopyrightText: 2009-2023 Alexander Reinholdt <alexander.reinholdt@kdemail.net>
 
+#
+# KDSoap WS Discovery client uses 'signals' and 'slots'
+#
+remove_definitions(
+  -DQT_NO_KEYWORDS)
+
 include_directories(
   ${CMAKE_CURRENT_SOURCE_DIR}
   ${CMAKE_CURRENT_BINARY_DIR}
