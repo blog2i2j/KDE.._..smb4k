@@ -366,17 +366,27 @@ int Smb4KCredentialsManager::migrate()
                         while (it.hasNext()) {
                             it.next();
 
+                            QString key, userInfo;
+
                             if (it.key() == QStringLiteral("DEFAULT_LOGIN")) {
                                 QUrl url;
                                 url.setUserName(it.value().value(QStringLiteral("Login")));
                                 url.setPassword(it.value().value(QStringLiteral("Password")));
-                                returnValue = write(QStringLiteral("smb://"), url.userInfo());
+
+                                key = QStringLiteral("smb://");
+                                userInfo = url.userInfo();
                             } else {
                                 QUrl url;
                                 url.setUrl(it.key(), QUrl::TolerantMode);
                                 url.setUserName(it.value().value(QStringLiteral("Login")));
                                 url.setPassword(it.value().value(QStringLiteral("Password")));
-                                returnValue = write(it.key(), url.userInfo());
+
+                                key = it.key();
+                                userInfo = url.userInfo();
+                            }
+
+                            if (write(key, userInfo) != QKeychain::NoError) {
+                                break;
                             }
                         }
                     }
@@ -389,6 +399,9 @@ int Smb4KCredentialsManager::migrate()
             }
 
             delete wallet;
+
+            // FIXME: Report an error in case the migration failed.
+
         } else if (buttonCode == KMessageBox::SecondaryAction) {
             authenticationGroup.writeEntry(QStringLiteral("MigratedToKeychain"), false);
             authenticationGroup.sync();
