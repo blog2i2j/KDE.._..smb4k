@@ -1,7 +1,7 @@
 /*
     This class provides the credentials manager used by Smb4K
 
-    SPDX-FileCopyrightText: 2022 Alexander Reinholdt <alexander.reinholdt@kdemail.net>
+    SPDX-FileCopyrightText: 2022-2023 Alexander Reinholdt <alexander.reinholdt@kdemail.net>
     SPDX-License-Identifier: GPL-2.0-or-later
 */
 
@@ -25,6 +25,7 @@
 #include <KLocalizedString>
 #include <KMessageBox>
 #include <KWallet>
+#include <QFile>
 #include <QStandardPaths>
 
 using namespace Smb4KGlobal;
@@ -168,10 +169,9 @@ bool Smb4KCredentialsManager::writeDefaultLoginCredentials(const QString &creden
 
 bool Smb4KCredentialsManager::hasDefaultCredentials() const
 {
-    QString key = QStringLiteral("smb://");
     QString credentials;
 
-    if (read(key, &credentials) == QKeychain::NoError) {
+    if (read(QStringLiteral("smb://"), &credentials) == QKeychain::NoError) {
         return true;
     }
 
@@ -185,9 +185,6 @@ bool Smb4KCredentialsManager::showPasswordDialog(const NetworkItemPtr &networkIt
     // For backward compatibility. Remove in the future again.
     // FIXME: Handle return value!?
     (void)migrate();
-
-    // Do not harass the user with dialogs if he/she already denied access to the
-    // secure storage or the secure storage did not open due to another reason.
 
     bool success = false;
 
@@ -313,6 +310,7 @@ int Smb4KCredentialsManager::write(const QString &key, const QString &credential
 int Smb4KCredentialsManager::remove(const QString &key)
 {
     int returnValue = QKeychain::NoError;
+
     QEventLoop loop;
     d->deletePasswordJob->setKey(key);
 
@@ -338,16 +336,16 @@ int Smb4KCredentialsManager::migrate()
 
     // Only consider migrating login credentials if Smb4K was already installed and
     // no migration has been done before.
+    QString configFile = QStandardPaths::locate(Smb4KSettings::self()->config()->locationType(), Smb4KSettings::self()->config()->mainConfigName());
     KConfigGroup authenticationGroup(Smb4KSettings::self()->config(), QStringLiteral("Authentication"));
 
-    if (!authenticationGroup.hasKey(QStringLiteral("MigratedToKeychain"))) {
-        int buttonCode = KMessageBox::questionTwoActionsCancel(
-            QApplication::activeWindow() ? QApplication::activeWindow() : nullptr,
-            i18n("<qt>Smb4K now stores the credentials in the secure storage under <b>org.kde.smb4k</b>. \nDo you want to migrate your credentials?</qt>"),
-            i18n("Migrate Credentials"),
-            KGuiItem(i18n("Migrate"), KDE::icon(QStringLiteral("edit-duplicate"))),
-            KGuiItem(i18n("Don't migrate"), KDE::icon(QStringLiteral("edit-delete-remove"))),
-            KStandardGuiItem::cancel());
+    if (QFile::exists(configFile) && !authenticationGroup.hasKey(QStringLiteral("MigratedToKeychain"))) {
+        int buttonCode = KMessageBox::questionTwoActions(QApplication::activeWindow() ? QApplication::activeWindow() : nullptr,
+                                                         i18n("The way Smb4K stores the credentials changed.\n\n"
+                                                              "Do you want to migrate your credentials?"),
+                                                         i18n("Migrate Credentials"),
+                                                         KGuiItem(i18n("Migrate"), KDE::icon(QStringLiteral("edit-duplicate"))),
+                                                         KStandardGuiItem::cancel());
 
         if (buttonCode == KMessageBox::PrimaryAction) {
             KWallet::Wallet *wallet =
@@ -385,7 +383,7 @@ int Smb4KCredentialsManager::migrate()
                                 userInfo = url.userInfo();
                             }
 
-                            if (write(key, userInfo) != QKeychain::NoError) {
+                            if ((returnValue = write(key, userInfo)) != QKeychain::NoError) {
                                 break;
                             }
                         }
@@ -393,14 +391,17 @@ int Smb4KCredentialsManager::migrate()
 
                     // wallet->removeFolder(QStringLiteral("Smb4K"));
                 }
-
-                authenticationGroup.writeEntry(QStringLiteral("MigratedToKeychain"), true);
-                authenticationGroup.sync();
             }
 
+            wallet->closeWallet(KWallet::Wallet::NetworkWallet(), false);
             delete wallet;
 
-            // FIXME: Report an error in case the migration failed.
+            if (returnValue == QKeychain::NoError) {
+                authenticationGroup.writeEntry(QStringLiteral("MigratedToKeychain"), true);
+                authenticationGroup.sync();
+            } else {
+                // FIXME: Report an error in case the migration failed.
+            }
 
         } else if (buttonCode == KMessageBox::SecondaryAction) {
             authenticationGroup.writeEntry(QStringLiteral("MigratedToKeychain"), false);
