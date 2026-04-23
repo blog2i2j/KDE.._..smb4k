@@ -1,7 +1,7 @@
 /*
     Provides an interface to the computer's hardware
 
-    SPDX-FileCopyrightText: 2015-2025 Alexander Reinholdt <alexander.reinholdt@kdemail.net>
+    SPDX-FileCopyrightText: 2015-2026 Alexander Reinholdt <alexander.reinholdt@kdemail.net>
     SPDX-License-Identifier: GPL-2.0-or-later
 */
 
@@ -18,6 +18,7 @@
 #include <qapplicationstatic.h>
 #endif
 #include <QDBusConnection>
+#include <QDBusConnectionInterface>
 #include <QDBusInterface>
 #include <QDBusReply>
 #include <QDBusUnixFileDescriptor>
@@ -75,22 +76,34 @@ Smb4KHardwareInterface::Smb4KHardwareInterface(QObject *parent)
     //
     // Set up the DBUS interface
     //
-    d->dbusInterface.reset(new QDBusInterface(QStringLiteral("org.freedesktop.login1"),
-                                              QStringLiteral("/org/freedesktop/login1"),
-                                              QStringLiteral("org.freedesktop.login1.Manager"),
-                                              QDBusConnection::systemBus(),
-                                              this));
+    if (QDBusConnection::systemBus().interface()->isServiceRegistered(QStringLiteral("org.freedesktop.login1"))) {
+        // Systemd
+        d->dbusInterface.reset(new QDBusInterface(QStringLiteral("org.freedesktop.login1"),
+                                                  QStringLiteral("/org/freedesktop/login1"),
+                                                  QStringLiteral("org.freedesktop.login1.Manager"),
+                                                  QDBusConnection::systemBus(),
+                                                  this));
 
-    if (!d->dbusInterface->isValid()) {
+        QDBusConnection::systemBus().connect(QString(),
+                                             QString(),
+                                             QStringLiteral("org.freedesktop.login1.Manager"),
+                                             QStringLiteral("PrepareForSleep"),
+                                             this,
+                                             SLOT(slotSystemSleep(bool)));
+    } else if (QDBusConnection::systemBus().interface()->isServiceRegistered(QStringLiteral("org.freedesktop.ConsoleKit"))) {
+        // ConsoleKit
         d->dbusInterface.reset(new QDBusInterface(QStringLiteral("org.freedesktop.ConsoleKit"),
                                                   QStringLiteral("/org/freedesktop/ConsoleKit/Manager"),
                                                   QStringLiteral("org.freedesktop.ConsoleKit.Manager"),
                                                   QDBusConnection::systemBus(),
                                                   this));
+        QDBusConnection::systemBus().connect(QString(),
+                                             QString(),
+                                             QStringLiteral("org.freedesktop.ConsoleKit.Manager"),
+                                             QStringLiteral("PrepareForSleep"),
+                                             this,
+                                             SLOT(slotSystemSleep(bool)));
     }
-
-    QDBusConnection::systemBus()
-        .connect(QString(), QString(), QStringLiteral("org.freedesktop.login1.Manager"), QStringLiteral("PrepareForSleep"), this, SLOT(slotSystemSleep(bool)));
 
     //
     // Check the online state
@@ -157,10 +170,10 @@ void Smb4KHardwareInterface::inhibit()
 
     if (d->dbusInterface->isValid()) {
         QVariantList args;
-        args << QStringLiteral("shutdown:sleep");
+        args << QStringLiteral("shutdown:sleep:idle");
         args << QStringLiteral("Smb4K");
         args << QStringLiteral("Mounting or unmounting in progress");
-        args << QStringLiteral("delay");
+        args << QStringLiteral("block");
 
         QDBusReply<QDBusUnixFileDescriptor> descriptor = d->dbusInterface->callWithArgumentList(QDBus::Block, QStringLiteral("Inhibit"), args);
 
